@@ -1,0 +1,17 @@
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NjcxMzMzOTgsInVzZXJpZCI6MX0.zlldgx2pYdrC95o3b3y74WIjVPREeyAb4tpXUby-I1M
+
+### appVersion
+
+GET  http://localhost:8080/
+
+### create user
+
+POST http://localhost:8080/users
+# Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "firstName":"kunanon",
+    "lastName":"lamysri",
+    "email":"cop"
+}
