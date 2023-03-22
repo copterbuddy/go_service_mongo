@@ -1,5 +1,5 @@
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NjcxMzMzOTgsInVzZXJpZCI6MX0.zlldgx2pYdrC95o3b3y74WIjVPREeyAb4tpXUby-I1M
-
+@number = 4
 ### appVersion
 
 GET  http://localhost:8080/
@@ -11,7 +11,7 @@ POST http://localhost:8080/users
 Content-Type: application/json
 
 {
-    "firstName":"kunanon",
-    "lastName":"lamysri",
-    "email":"cop"
+    "firstName":"test{{number}}",
+    "lastName":"test{{number}}",
+    "email":"test{{number}}"
 }

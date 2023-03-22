@@ -3,52 +3,43 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"main/handler"
+	"main/repository"
+	"main/service"
 )
 
-type User struct {
-	ID        string `json:"id" bson:"_id"`
-	FirstName string `json:"firstName" bson:"firstName"`
-	LastName  string `json:"lastName" bson:"lastName"`
-	Email     string `json:"email" bson:"email"`
-}
+func main() {
 
-type UserRepository interface {
-	CreateUser(ctx context.Context, user *User) error
-}
+	db := InitMongoDb()
 
-type UserService struct {
-	repo UserRepository
-}
+	// Initialize Repositories
+	userRepo := repository.NewUserMongoRepository(db)
 
-func (s *UserService) CreateUser(ctx context.Context, user *User) error {
-	newUser := user
-	newUser.ID = uuid.New().String()
-	return s.repo.CreateUser(ctx, newUser)
-}
+	// Initialize Services
+	userService := service.NewUserService(userRepo)
 
-type UserMongoRepository struct {
-	collection *mongo.Collection
-}
+	// Initialize Handler
+	userHandler := handler.NewUserHandler(userService)
 
-func (r *UserMongoRepository) CreateUser(ctx context.Context, user *User) error {
-	_, err := r.collection.InsertOne(ctx, user)
-	return err
-}
+	// Initialize Router
+	router := gin.Default()
 
-func NewUserMongoRepository(db *mongo.Database) *UserMongoRepository {
-	return &UserMongoRepository{
-		collection: db.Collection("users"),
+	router.POST("/users", userHandler.CreateUser)
+
+	// Start Server
+	if err := router.Run(":8080"); err != nil {
+		fmt.Println(err)
 	}
 }
 
-func main() {
+func InitMongoDb() *mongo.Database {
 	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -58,37 +49,19 @@ func main() {
 		panic(err)
 	}
 
-	db := client.Database("mydb")
+	err = client.Ping(ctx, nil)
+	if err != nil {
 
-	// Initialize Repositories
-	userRepo := NewUserMongoRepository(db)
+		fmt.Println("====================")
+		fmt.Println("cannot connect to mongodb!")
+		fmt.Println("====================")
 
-	// Initialize Services
-	userSvc := &UserService{
-		repo: userRepo,
+		log.Fatal(err)
 	}
 
-	// Initialize Router
-	router := gin.Default()
+	fmt.Println("====================")
+	fmt.Println("connected to mongodb!")
+	fmt.Println("====================")
 
-	router.POST("/users", func(c *gin.Context) {
-		var user User
-
-		if err := c.ShouldBindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err := userSvc.CreateUser(c.Request.Context(), &user); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusCreated, user)
-	})
-
-	// Start Server
-	if err := router.Run(":8080"); err != nil {
-		fmt.Println(err)
-	}
+	return client.Database("mydb")
 }
